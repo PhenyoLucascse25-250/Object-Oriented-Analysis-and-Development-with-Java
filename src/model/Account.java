@@ -24,4 +24,12 @@ public abstract class Account {
     public double calculateInterestRate() {
         return 0;
     }
+     public String getAccountNumber() {
+        return accountNumber;
+    }
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " - " + accountNumber;
+    }
+
 }
