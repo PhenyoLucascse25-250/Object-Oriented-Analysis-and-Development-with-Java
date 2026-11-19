@@ -8,6 +8,8 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
+
+// Boundary class: NO business logic
 public class LoginView {
     private final Stage stage;
     private final LoginController loginController;

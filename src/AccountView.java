@@ -10,7 +10,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
-
+// Boundary class: NO business logic
 public class AccountView {
     private final Stage stage;
     private final LoginController loginController;
