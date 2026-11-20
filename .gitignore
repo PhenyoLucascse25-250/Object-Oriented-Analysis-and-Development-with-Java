@@ -1,2 +1,5 @@
 target/
 *.class
+banking_db*.db
+banking_db*.mv.db
+*.trace.db

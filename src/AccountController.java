@@ -1,92 +1,109 @@
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 public class AccountController {
-    private final List<Account> accounts = new ArrayList<>();
-    private final Map<String, List<String>> history = new HashMap<>();
+    private final CustomerDAO customerDAO = new CustomerDAO();
+    private final AccountDAO accountDAO = new AccountDAO();
+    private final TransactionDAO transactionDAO = new TransactionDAO();
+    private final String processedBy = "admin";
     public AccountController() {
-        addAccount(new ChequeAccount("CH001", 1000, "The Mall Branch",
+        addSampleDataIfEmpty();
+    }
+    private void addSampleDataIfEmpty() {
+        if (!accountDAO.findAll().isEmpty()) { return; }
+        customerDAO.save(new Customer("C001", "Phenyo", "Lucas",
+                "71234567", "123456", "phenyo@test.com"));
+        saveSample(new ChequeAccount("CH001", 1000, "The Mall Branch",
                 new Date(), "ABC Ltd", "Gaborone", 500));
-        addAccount(new SavingsAccount("SA001", 1000, "The Mall Branch",
+        saveSample(new SavingsAccount("SA001", 1000, "The Mall Branch",
                 new Date(), 0.05));
-        addAccount(new InvestmentAccount("IN001", 5000, "The Mall Branch",
+        saveSample(new InvestmentAccount("IN001", 5000, "The Mall Branch",
                 new Date(), 5, 500));
     }
-    private void addAccount(Account acc) {
-        accounts.add(acc);
-        history.put(acc.getAccountNumber(), new ArrayList<>());
+    private void saveSample(Account acc) {
+        acc.setCustomerID("C001");
+        accountDAO.save(acc);
     }
-   
+    // ----- things the View can ask for (all answers are text) ----
     public List<String> getAccountNumbers() {
         List<String> numbers = new ArrayList<>();
-        for (Account acc : accounts) {
+        for (Account acc : accountDAO.findAll()) {
             numbers.add(acc.getAccountNumber());
         }
         return numbers;
     }
     public String getAccountType(String accNo) {
-        Account acc = find(accNo);
+        Account acc = accountDAO.findByNumber(accNo);
         return (acc == null) ? "Unknown" : acc.getClass().getSimpleName();
     }
     public String getBalanceText(String accNo) {
-        Account acc = find(accNo);
+        Account acc = accountDAO.findByNumber(accNo);
         if (acc == null) { return "Unknown"; }
         return "BWP " + String.format("%.2f", acc.getBalance());
     }
     public List<String> getHistory(String accNo) {
-        List<String> list = history.get(accNo);
-        return (list == null) ? new ArrayList<>() : list;
+        return transactionDAO.findByAccount(accNo);
     }
-    
+    // ----- things the View can ask us to do ----
     public String deposit(String accNo, String amountText) {
-        Account acc = find(accNo);
-        if (acc == null) { return "Account not found."; }
         Double amount = parseAmount(amountText);
         if (amount == null) { return "Please type a number, like 250."; }
         if (amount <= 0) { return "Amount must be more than 0."; }
-        acc.deposit(amount);
-        record(acc, "Deposit", amount);
-        return "Deposit successful.";
+        try {
+            Account acc = accountDAO.findByNumber(accNo);
+            if (acc == null) { return "Account not found."; }
+            acc.deposit(amount);                       // model does the maths
+            accountDAO.updateBalance(acc);             // DAO saves the balance
+            transactionDAO.save(accNo, "Deposit", amount,
+                    acc.getBalance(), processedBy);    // DAO saves the history
+            return "Deposit successful.";
+        } catch (RuntimeException e) {
+            return e.getMessage();
+        }
     }
     public String withdraw(String accNo, String amountText) {
-        Account acc = find(accNo);
-        if (acc == null) { return "Account not found."; }
         Double amount = parseAmount(amountText);
         if (amount == null) { return "Please type a number, like 250."; }
-
         if (amount <= 0) { return "Amount must be more than 0."; }
-        boolean ok;
-        if (acc instanceof ChequeAccount) {
-            ok = ((ChequeAccount) acc).withdraw(amount);
-        } else if (acc instanceof InvestmentAccount) {
-            ok = ((InvestmentAccount) acc).withdraw(amount);
-        } else {
-            return "Savings accounts do not allow withdrawals.";
+        try {
+            Account acc = accountDAO.findByNumber(accNo);
+            if (acc == null) { return "Account not found."; }
+            boolean ok;
+            if (acc instanceof ChequeAccount) {
+                ok = ((ChequeAccount) acc).withdraw(amount);
+            } else if (acc instanceof InvestmentAccount) {
+                ok = ((InvestmentAccount) acc).withdraw(amount);
+
+            } else {
+                return "Savings accounts do not allow withdrawals.";
+            }
+            if (!ok) { return "Withdrawal failed. Not enough money."; }
+            accountDAO.updateBalance(acc);
+            transactionDAO.save(accNo, "Withdrawal", amount,
+                    acc.getBalance(), processedBy);
+            return "Withdrawal successful.";
+        } catch (RuntimeException e) {
+            return e.getMessage();
         }
-        if (!ok) { return "Withdrawal failed. Not enough money."; }
-        record(acc, "Withdrawal", amount);
-        return "Withdrawal successful.";
     }
     public String payInterest(String accNo) {
-        Account acc = find(accNo);
-        if (acc == null) { return "Account not found."; }
-        if (!(acc instanceof InterestBearing)) {
-            return "This account does not earn interest.";
+        try {
+            Account acc = accountDAO.findByNumber(accNo);
+            if (acc == null) { return "Account not found."; }
+            if (!(acc instanceof InterestBearing)) {
+                return "This account does not earn interest.";
+            }
+            double before = acc.getBalance();
+            ((InterestBearing) acc).payInterest();
+            accountDAO.updateBalance(acc);
+            transactionDAO.save(accNo, "Interest", acc.getBalance() - before,
+                    acc.getBalance(), processedBy);
+            return "Interest paid.";
+        } catch (RuntimeException e) {
+            return e.getMessage();
         }
-        double before = acc.getBalance();
-        ((InterestBearing) acc).payInterest();
-        record(acc, "Interest", acc.getBalance() - before);
-        return "Interest paid.";
     }
-  
-    private Account find(String accNo) {
-        for (Account acc : accounts) {
-            if (acc.getAccountNumber().equals(accNo)) { return acc; }
-        }
-        return null;
-    }
+    // ----- private helper ----
     private Double parseAmount(String text) {
         if (text == null) { return null; }
         try {
@@ -96,11 +113,5 @@ public class AccountController {
         } catch (NumberFormatException e) {
             return null;
         }
-    }
-    private void record(Account acc, String type, double amount) {
-        String line = new Date() + " | " + type
-                + " | BWP " + String.format("%.2f", amount)
-                + " | Balance: BWP " + String.format("%.2f", acc.getBalance());
-        history.get(acc.getAccountNumber()).add(line);
     }
 }
