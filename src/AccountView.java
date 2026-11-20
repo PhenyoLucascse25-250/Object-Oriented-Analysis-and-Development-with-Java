@@ -9,8 +9,8 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-
-// Boundary class: NO business logic
+// Boundary class: shows information and collects input.
+// It talks ONLY to the controllers. It has NO business logic.
 public class AccountView {
     private final Stage stage;
     private final LoginController loginController;
@@ -24,79 +24,64 @@ public class AccountView {
     public void show() {
         Label heading = new Label("My Accounts");
         heading.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
-      
-        Label pickLabel = new Label("Choose an account:");
-        ComboBox<Account> accountBox = new ComboBox<>();
-        accountBox.getItems().addAll(accountController.getAccounts());
+        Label pickLabel = new Label("Choose an account number:");
+        ComboBox<String> accountBox = new ComboBox<>();
+        accountBox.getItems().addAll(accountController.getAccountNumbers());
         accountBox.getSelectionModel().selectFirst();
-      
+        Label typeLabel = new Label();
         Label balanceLabel = new Label();
         balanceLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
-      
         TextField amountField = new TextField();
         amountField.setPromptText("Amount in BWP");
         Button depositButton = new Button("Deposit");
         Button withdrawButton = new Button("Withdraw");
         Button interestButton = new Button("Pay Month-End Interest");
         HBox buttonRow = new HBox(10, depositButton, withdrawButton, interestButton);
-       
         Label messageLabel = new Label();
         messageLabel.setStyle("-fx-text-fill: darkblue;");
         Label historyLabel = new Label("Transaction history:");
         ListView<String> historyList = new ListView<>();
+
         historyList.setPrefHeight(180);
         Button logoutButton = new Button("Logout");
-       
+        // Ask the controller for fresh text and show it
         Runnable refresh = () -> {
-            Account acc = accountBox.getValue();
-            balanceLabel.setText("Balance: BWP " + String.format("%.2f", acc.getBalance()));
-            historyList.getItems().setAll(accountController.getHistory(acc));
+            String accNo = accountBox.getValue();
+            typeLabel.setText("Type: " + accountController.getAccountType(accNo));
+            balanceLabel.setText("Balance: " + accountController.getBalanceText(accNo));
+            historyList.getItems().setAll(accountController.getHistory(accNo));
         };
         accountBox.setOnAction(e -> {
             messageLabel.setText("");
             refresh.run();
         });
         depositButton.setOnAction(e -> {
-            Double amount = readAmount(amountField, messageLabel);
-            if (amount == null) { return; }
-            messageLabel.setText(
-                    accountController.deposit(accountBox.getValue(), amount));
+            messageLabel.setText(accountController.deposit(
+                    accountBox.getValue(), amountField.getText()));
             amountField.clear();
             refresh.run();
         });
         withdrawButton.setOnAction(e -> {
-            Double amount = readAmount(amountField, messageLabel);
-            if (amount == null) { return; }
-            messageLabel.setText(
-                    accountController.withdraw(accountBox.getValue(), amount));
+            messageLabel.setText(accountController.withdraw(
+                    accountBox.getValue(), amountField.getText()));
             amountField.clear();
             refresh.run();
         });
         interestButton.setOnAction(e -> {
-            messageLabel.setText(
-                    accountController.payInterest(accountBox.getValue()));
+            messageLabel.setText(accountController.payInterest(
+                    accountBox.getValue()));
             refresh.run();
         });
         logoutButton.setOnAction(e ->
                 new LoginView(stage, loginController, accountController).show());
-
-        refresh.run();   
-        VBox root = new VBox(10, heading, pickLabel, accountBox, balanceLabel,
-                amountField, buttonRow, messageLabel, historyLabel,
-                historyList, logoutButton);
+        refresh.run();
+        VBox root = new VBox(10, heading, pickLabel, accountBox, typeLabel,
+                balanceLabel, amountField, buttonRow, messageLabel,
+                historyLabel, historyList, logoutButton);
         root.setPadding(new Insets(20));
         root.setAlignment(Pos.TOP_LEFT);
         stage.setTitle("Banking System - Accounts");
-        stage.setScene(new Scene(root, 560, 600));
+        stage.setScene(new Scene(root, 560, 620));
         stage.show();
-    }
-    
-    private Double readAmount(TextField field, Label messageLabel) {
-        try {
-            return Double.parseDouble(field.getText().trim());
-        } catch (NumberFormatException ex) {
-            messageLabel.setText("Please type a number, like 250.");
-            return null;
-        }
     }
 }
