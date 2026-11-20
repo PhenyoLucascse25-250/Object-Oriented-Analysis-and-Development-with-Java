@@ -25,4 +25,13 @@ public class InvestmentAccount extends Account implements InterestBearing {
     public double calculateInterestRate() {
         return balance * interestRate / 100;
     }
+
+    // added: getters for the database class
+    public double getInterestRate() {
+        return interestRate;
+    }
+
+    public double getMinimumDeposit() {
+        return minimumDeposit;
+    }
 }

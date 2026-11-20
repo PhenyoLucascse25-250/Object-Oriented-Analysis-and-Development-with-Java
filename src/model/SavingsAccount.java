@@ -15,4 +15,9 @@ public class SavingsAccount extends Account implements InterestBearing {
     public double calculateInterestRate() {
         return balance * interestRate / 100;
     }
+
+    // added: getter for the database class
+    public double getInterestRate() {
+        return interestRate;
+    }
 }

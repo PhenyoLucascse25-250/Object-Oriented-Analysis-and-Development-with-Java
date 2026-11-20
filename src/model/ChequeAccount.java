@@ -19,4 +19,17 @@ public class ChequeAccount extends Account {
         }
         return false;
     }
+
+    // added: getters for the database class
+    public String getEmployerName() {
+        return employerName;
+    }
+
+    public String getEmployerAddress() {
+        return employerAddress;
+    }
+
+    public double getOverdraftLimit() {
+        return overdraftLimit;
+    }
 }
