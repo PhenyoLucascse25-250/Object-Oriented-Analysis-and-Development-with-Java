@@ -3,7 +3,7 @@ import java.util.Date;
 import java.util.List;
 
 // Controller: applies the rules, asks the model to do the money maths,
-// and saves the result through the DAOs. 
+// and saves the result through the DAOs. No JavaFX and no SQL in here.
 public class AccountController {
     private static final String USER = "admin";   // the logged-in user
 
