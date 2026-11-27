@@ -1,0 +1,18 @@
+{
+  "image": "mcr.microsoft.com/devcontainers/java:25",
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "25",
+      "installMaven": "true"
+    },
+    "ghcr.io/devcontainers/features/desktop-lite:1": {}
+  },
+  "postCreateCommand": "sudo apt-get update && sudo apt-get install -y libgtk-3-0t64 libgl1 libgl1-mesa-dri libxtst6 libxxf86vm1 libasound2t64 x11-utils",
+  "forwardPorts": [6080],
+  "portsAttributes": {
+    "6080": { "label": "Desktop (noVNC)" }
+  },
+  "containerEnv": {
+    "DISPLAY": ":1"
+  }
+}

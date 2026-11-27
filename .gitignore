@@ -3,3 +3,5 @@ target/
 banking_db*.db
 banking_db*.mv.db
 *.trace.db
+target/
+banking_db.mv.db
