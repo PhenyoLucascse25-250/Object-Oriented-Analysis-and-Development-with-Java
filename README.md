@@ -5,7 +5,7 @@ Part B, Section 5: GUI Design and Implementation (JavaFX)
 
 ## Requirements
 
-- Java 17 or newer (JDK)
+- Java 25 or newer (JDK)
 - Maven
 
 ## How to run
